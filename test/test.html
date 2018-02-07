@@ -1,0 +1,19 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>amd mould loader</title>
+</head>
+
+<body>
+    <!-- <script type="text/javascript" src="../lib/amd.js"></script> -->
+    <script type="text/javascript" src="../lib/dwarf.js"></script>
+    <script type="text/javascript">
+   		define('./test', 'guotingjie');
+   		require(['./test'], function() {
+   			console.log(require('./test'));
+   		});
+    </script>
+</body>
+
+</html>
