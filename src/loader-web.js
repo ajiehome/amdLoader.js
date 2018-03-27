@@ -48,4 +48,4 @@
     loader.importModule = getScript;
     if (main) loader.main = new loader.Module(main);
 
-})(S.ModuleLoader);
+})(S.Loader);
