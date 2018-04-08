@@ -28,7 +28,7 @@ S.DEBUG = true;
  * @param {string} cat The log category for the message such as "info", "warn",
  * "error", "time" etc. Default is "log".
  */
-S.log = function(msg, cat) {
+S.log = function (msg, cat) {
     if (S.DEBUG) {
         var console = S.global['console'];
         if (console && console['log']) {
@@ -42,16 +42,16 @@ S.log = function(msg, cat) {
  * Throws error message.
  * @param {string} msg The exception message.
  */
-S.error = function(msg) {
+S.error = function (msg) {
     if (S.DEBUG) {
         throw msg;
     }
 };
 
-S.type = (function() {
+S.type = (function () {
     var cls = ['Boolean', 'Number', 'String', 'Function', 'Array', 'Date',
-            'RegExp', 'Object'
-        ],
+        'RegExp', 'Object'
+    ],
         cls2type = {};
 
     for (var i = 0; i < cls.length; i++) {
@@ -59,9 +59,35 @@ S.type = (function() {
         cls2type['[object ' + name + ']'] = name.toLowerCase();
     }
 
-    return function(o) {
+    return function (o) {
         return o == null ?
             String(o) :
             cls2type[Object.prototype.toString.call(o)] || 'object';
     }
 })();
+
+/**
+ * Checks to if an object is string.
+ * @param {*} o
+ */
+S.isString = function (o) {
+    return S.type(o) === 'string';
+};
+
+
+/**
+ * Checks to if an object is function.
+ * @param {*} o
+ */
+S.isFunction = function (o) {
+    return S.type(o) === 'function';
+};
+
+
+/**
+ * Checks to if an object is array.
+ * @param {*} o
+ */
+S.isArray = Array.isArray ? Array.isArray : function (o) {
+    return S.type(o) === 'array';
+};
