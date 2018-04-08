@@ -9,6 +9,26 @@
 
 # how
 
+## 如何定位一个模块
+
+每个module都有一个ID(一般是模块的相对路径),根据传入的baseURL+模块ID得到该模块的完整路径。
+
+## 如何加载一个模块
+
+得到模块的完整路径后，通过动态创建script脚本来加载模块：
+
+```javascript
+var node = document.createElement('script');
+var head = document.getElementsByTagName('head')[0];
+
+node.src = url;
+node.async = true;
+
+node.addEventListener('load', callback, false);
+
+head.insertBefore(node, head.firstChild);
+```
+
 * [AMD规范](https://github.com/amdjs/amdjs-api/wiki/AMD)
 
 
