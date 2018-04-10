@@ -81,7 +81,7 @@ function require(id) {
 	var fn = mod.factory;
 
 	if(!mod.exports) {
-		var exports = {};
+        var exports = {};
 	    var ret = factory.call(mod, new Require(), exports, mod);
 	    if(ret) mod.exports = ret;
 
@@ -90,7 +90,7 @@ function require(id) {
 	return mod.exports
 }
 ```
-利用call调用模块的factory方法,依次将`require`,`exports`对象传入,模块内部将hello方法挂在exports对象上,最后将exports对象挂在模块映射表上缓存起来，下次就可以直接返回使用了。
+利用call调用模块的factory方法,依次将`require`,`exports`对象传入,模块内部将hello方法挂在exports对象上,最后将exports对象挂在模块映射表上缓存起来，下次就可以直接使用了。
 
 
 * [AMD规范](https://github.com/amdjs/amdjs-api/wiki/AMD)

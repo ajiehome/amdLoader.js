@@ -3,7 +3,7 @@
  * @author guotingjie@maxthon.net
  */
 
-(function () {
+(function() {
     // declared, but has not been provided.
     var pendingMod = null;
 
@@ -12,17 +12,10 @@
 
     // init mainModDir and mainModId.
     var doc = document;
-    var scripts = document.getElementsByTagName('script');
+    var scripts = doc.getElementsByTagName('script');
     var loaderScript = scripts[scripts.length - 1];
-    var mainModDir = dirname(loaderScript.src);
+    var mainModDir = dirname(getScriptAbsSrc(loaderScript));
     var mainModId = loaderScript.getAttribute('data-main');
-
-    // reset loader enviroment.
-    S.reset = function (dir) {
-        pendingMod = null;
-        providedMods = {};
-        if (dir) mainModDir = dir;
-    };
 
     function memoize(id, mod) {
         mod.id = id;
@@ -38,7 +31,10 @@
     }
 
     function getUnmemoizedIds(ids) {
-        var ret = [], i = 0, len = ids.length, id;
+        var ret = [],
+            i = 0,
+            len = ids.length,
+            id;
         for (; i < len; i++) {
             id = ids[i];
             if (!isMemoized(id)) {
@@ -76,8 +72,7 @@
 
         if (S.isFunction(fn)) {
             exports = execFactory(mod, fn);
-        }
-        else if (S.type(fn) === 'object') {
+        } else if (S.type(fn) === 'object') {
             exports = fn;
         }
 
@@ -98,28 +93,42 @@
     /**
      * provide modules to the environment, and then fire callback.
      */
-    S.provide = function (ids, callback) {
+    provide = function(ids, callback, norequire) {
         ids = getUnmemoizedIds(ids);
 
-        if (ids.length === 0) {
-            callback && callback();
-            return;
-        }
+        if (ids.length === 0) return cb()
 
         var remain = ids.length;
         for (var i = 0, len = remain; i < len; i++) {
-            load(ids[i], function () {
-                if (--remain === 0) {
-                    callback && callback(new Require());
-                }
-            });
+            (function(id) {
+                load(id, function() {
+                    var deps = (getProvidedMod(id) || 0).dependencies || []
+                    deps = getUnmemoizedIds(deps)
+
+                    var len = deps.length
+
+                    if (len) {
+                        remain += len
+                        provide(deps, function() {
+                            remain -= len;
+                            if(remain === 0) cb()
+                        }, true)
+                    }
+
+                    if(--remain === 0) cb()
+                })
+            })(ids[i])
+        }
+
+        function cb() {
+            callback && callback(norequire ? undefined : new Require())
         }
     };
 
     /**
      * declare a module to the environment.
-    */
-    S.declare = function (id, deps, factory) {
+     */
+    declare = function(id, deps, factory) {
         // overload arguments
         if (S.isArray(id)) {
             factory = deps;
@@ -141,13 +150,14 @@
         } else {
             pendingMod = mod;
         }
+
     };
 
     function load(id, callback) {
         // reset to avoid polluting by 'S.declare' without id in static script.
         pendingMod = null;
 
-        getScript(fullpath(id), function () {
+        getScript(fullpath(id), function() {
             if (pendingMod) {
                 memoize(id, pendingMod);
                 pendingMod = null;
@@ -160,25 +170,31 @@
 
     function getScript(url, success) {
         var node = doc.createElement('script');
+       
+        scriptOnload(node, function() {
+            if (success) success.call(node);
+            try{
+                if(node.clearAttributes) {
+                    node.clearAttributes()
+                } else {
+                    for(var p in node) delete node[p]
+                }
+            } catch(e) {}
+            head.removeChild(node);
+        });
         node.src = url;
         node.async = true;
-
-        scriptOnload(node, function () {
-            if (success) success.call(node);
-            //head.removeChild(node);
-        });
-
-        head.insertBefore(node, head.firstChild);
+        return head.insertBefore(node, head.firstChild);
     }
 
     function scriptOnload(node, callback) {
         node.addEventListener('load', callback, false);
     }
 
-    if (!document.createElement('script').addEventListener) {
-        scriptOnload = function (node, callback) {
+    if (!doc.createElement('script').addEventListener) {
+        scriptOnload = function(node, callback) {
             var oldCallback = node.onreadystatechange;
-            node.onreadystatechange = function () {
+            node.onreadystatechange = function() {
                 var rs = node.readyState;
                 if (rs === 'loaded' || rs === 'complete') {
                     node.onreadystatechange = null;
@@ -187,6 +203,16 @@
                 }
             };
         }
+    }
+
+    if(mainModId) {
+        provide([mainModId])
+    }
+
+    function reset(dir) {
+        pendingMod = null
+        providedMods = {}
+        if(dir) mainModDir = dir
     }
 
     //==============================================================================
@@ -224,7 +250,8 @@
      */
     function realpath(path) {
         var old = path.split('/');
-        var ret = [], part, i, len;
+        var ret = [],
+            part, i, len;
 
         for (i = 0, len = old.length; i < len; i++) {
             part = old[i];
@@ -254,9 +281,28 @@
     function fullpath(id) {
         if (id === '' || id.indexOf('://') !== -1) return id;
         if (id.charAt(0) === '/') id = id.substring(1);
-        return realpath(mainModDir + '/' + id + '.js');
+        return realpath(mainModDir + '/' + id) + '.js';
+    }
+
+    /**
+     * Extract the non-directory portion of a path.
+     * basename('a/b/c.js') ==> 'c.js'
+     * basename('a/b/c') ==> 'c'
+     * basename('a/b/') ==> ''
+     */
+    function basename(path) {
+      return path.split('/').slice(-1)[0];
+    }
+
+    function getScriptAbsSrc(node) {
+     return node.hasAttribute ?
+       node.src :
+       // IE6/7 see: http://msdn.microsoft.com/en-us/library/ms536429(VS.85).aspx
+       node.getAttribute('src', 4);
     }
 
     // for test
-    S.providedMods = providedMods;
+    S.declare = declare
+    S.provide = provide
+    S.reset = reset
 })()
