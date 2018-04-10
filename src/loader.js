@@ -48,7 +48,8 @@
     // Requiring Members
     //==============================================================================
 
-    function Require() {
+    function Require(sandbox) {
+        sandbox = sandbox || {deps: []}
 
         function require(id) {
             var mod = getProvidedMod(id);
@@ -56,9 +57,14 @@
                 return S.error('Module ' + id + ' is not provided.');
             }
 
+            if(isCyclic(sandbox, id)) {
+                S.log('cyclic dependencies: id = ' + id);
+                return mod.exports
+            }
+
             // initialize mod.exports
             if (!mod.exports) {
-                mod.exports = getExports(mod);
+                setExports(mod, sandbox);
             }
             return mod.exports;
         }
@@ -66,25 +72,27 @@
         return require;
     }
 
-    function getExports(mod) {
-        var fn = mod.factory;
-        var exports = {};
+    function setExports(mod, sandbox) {
+        var factory = mod.factory, ret;
 
-        if (S.isFunction(fn)) {
-            exports = execFactory(mod, fn);
-        } else if (S.type(fn) === 'object') {
-            exports = fn;
+        if (S.isFunction(factory)) {
+            ret = factory.call(
+                mod, 
+                new Require({ id: mod.id, parent: sandbox, deps: mod.dependencies }), 
+                (mod.exports = {}), // 引用传递，
+                mod);
+            if (ret) mod.exports = ret;
+
+        } else {
+            mod.exports = factory || {};
         }
-
-        return exports;
     }
 
-    function execFactory(mod, factory) {
-        var exports = {};
-        var ret = factory.call(mod, new Require(), exports, mod);
-        if (ret) exports = ret;
-        return exports;
-    }
+    function isCyclic(sandbox, id) {
+        if (sandbox.id === id) return true;
+        if (sandbox.parent) return isCyclic(sandbox.parent, id);
+        return false;
+      }
 
     //==============================================================================
     // Provisioning Members
@@ -121,7 +129,7 @@
         }
 
         function cb() {
-            callback && callback(norequire ? undefined : new Require())
+            callback && callback(norequire ? undefined : new Require({ deps: ids }))
         }
     };
 
@@ -150,7 +158,6 @@
         } else {
             pendingMod = mod;
         }
-
     };
 
     function load(id, callback) {

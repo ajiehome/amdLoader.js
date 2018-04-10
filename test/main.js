@@ -12,10 +12,17 @@ S.declare('test', [], function(require, exports) {
   }
 });
 
-S.provide(['math/program'], function(require) {
+// S.provide(['math/program'], function(require) {
+//   //try {
+//     require('math/program');
+//   //} catch (x) {
+//   //  sendMessage('printResults', 'ERROR ' + x.message, 'error');
+//   //}
+// });
+
+S.provide(['cyclic/main'], function(require) {
   //try {
-    console.log(111)
-    require('math/program');
+    require('cyclic/main');
   //} catch (x) {
   //  sendMessage('printResults', 'ERROR ' + x.message, 'error');
   //}

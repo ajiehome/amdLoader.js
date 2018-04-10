@@ -93,6 +93,36 @@ function require(id) {
 利用call调用模块的factory方法,依次将`require`,`exports`对象传入,模块内部将hello方法挂在exports对象上,最后将exports对象挂在模块映射表上缓存起来，下次就可以直接使用了。
 
 
+## 如何解决循环依赖
+
+模块之间互相引用，会导致循环依赖：
+```javascript
+// a.js
+S.declare(['cyclic/b'], function(require, exports) {
+	
+    var b = require('cyclic/b');
+    exports.a = function() {
+        return b;
+    };
+
+});
+
+// b.js
+S.declare(['cyclic/a'], function(require, exports) {
+
+    var a = require('cyclic/a');
+    exports.b = function() {
+        return a;
+    };
+
+});
+```
+**备注：这里的循环依赖与重复加载是不同的概念**
+重复加载指的是从网络下载模块文件，如何解决上面已经提到过了。
+循环依赖的问题在于循环触发了模块的factory函数。解决的关键就是`require('xxx')`时需要判断是否factory已经执行过了，如果执行了，直接返回上次的exports对象即可。
+
+
+
 * [AMD规范](https://github.com/amdjs/amdjs-api/wiki/AMD)
 
 
