@@ -1,4 +1,4 @@
-S.declare(['cyclic/a'], function(require, exports) {
+module.declare(['cyclic/a'], function(require, exports) {
 
     var a = require('cyclic/a');
     exports.b = function() {
