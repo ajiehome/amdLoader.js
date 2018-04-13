@@ -1,7 +1,7 @@
 {
-  "name": "amdLoader.js",
+  "name": "cmdLoader.js",
   "version": "0.0.1",
-  "description": "amd loader",
+  "description": "https://github.com/answer518/cmdLoader.js/edit/master/package.json",
   "main": "index.js",
   "scripts": {
     "test": "karma start"
