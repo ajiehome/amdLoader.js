@@ -118,10 +118,54 @@ S.declare(['cyclic/a'], function(require, exports) {
 });
 ```
 **备注：这里的循环依赖与重复加载是不同的概念**
+
 重复加载指的是从网络下载模块文件，如何解决上面已经提到过了。
 循环依赖的问题在于循环触发了模块的factory函数。解决的关键就是`require('xxx')`时需要判断是否factory已经执行过了，如果执行了，直接返回上次的exports对象即可。
 
+# CMD,AMD区别
 
+CMD推崇依赖就近，可以把依赖写进你的代码中的任意一行:
+```javascript
+define(function(require, exports, module) {
+  var a = require('./a')
+  a.doSomething()
+  var b = require('./b')
+  b.doSomething()
+})
+```
+代码在运行时，首先是不知道依赖的，需要遍历所有的require关键字，找出后面的依赖。具体做法是将function toString后，用正则匹配出require关键字后面的依赖。显然，这是一种牺牲性能来换取更多开发便利的方法。
+
+AMD是依赖前置，也就是在解析和执行当前模块之前，模块作者必须指明当前模块所依赖的模块:
+```javascript
+define(['./a','./b'],function(a,b){
+   a.doSomething()
+   b.doSomething()
+}) 
+```
+
+由于提前知道依赖关系，所以不需要遍历整个函数体找它的依赖，所以性能相比CMD有所提升。唯一的缺点就是开发者必须显式得指明依赖——这会使得开发工作量变大
+
+> 当你写到函数体内部几百上千行的时候，忽然发现需要增加一个依赖，你不得不回到函数顶端来将这个依赖添加进数组。
+
+## 硬依赖?软依赖
+
+所谓硬依赖就是肯定要执行的依赖，但有时候偏偏有这样的情况:
+```javascript
+// 函数体内：
+if(status){
+  a.doSomething()
+}
+```
+我们把这种既可能依赖a,也可能不依赖a的这种叫做"软依赖"。为了最大化优化，我们需要针对这种情况做特殊处理:
+```javascript
+// 函数体内：
+if(status){
+  async(['a'],function(a){
+    a.doSomething()
+  })
+}
+```
+这就是依赖前置+回调的方案。
 
 * [AMD规范](https://github.com/amdjs/amdjs-api/wiki/AMD)
 
